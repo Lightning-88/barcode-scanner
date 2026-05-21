@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POS Barcode Scanner</title>
+<title>Barcode Scanner</title>
 
 <!-- Menggunakan ZXing untuk performa scan Barcode Garis yang cepat -->
 <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
@@ -48,8 +48,6 @@ video {
   object-fit: cover; /* Memotong video agar pas di dalam kotak kecil */
 }
 
-/* Garis Laser Merah Khas Scanner POS Kasir */
-
 /* Desain Tombol Kontrol */
 .btn-group {
   margin-bottom: 15px;
@@ -91,13 +89,12 @@ button:disabled { background: #333; color: #666; cursor: not-allowed; }
 </style>
 </head>
 <body>
-
-<h1>POS Scanner Mini</h1>
+  
 <p>Arahkan barcode garis produk ke dalam kotak</p>
 
 <div class="btn-group">
   <button class="btn-start" onclick="initPOSScanner()">Buka Scanner</button>
-  <button class="btn-flash" id="flashBtn" onclick="toggleFlash()" disabled>⚡ Flash Off</button>
+  <button class="btn-flash" id="flashBtn" onclick="toggleFlash()" disabled>Flash Off</button>
 </div>
 
 <!-- Container Kamera Kecil -->
@@ -143,6 +140,7 @@ async function initPOSScanner() {
         resultElement.innerText = result.text;
         
         console.log("Barcode ketemu:", result.text);
+        codeReader.reset()
         
         /* 
           TIPS UNTUK WEB POS:
@@ -169,7 +167,7 @@ async function initPOSScanner() {
       }
     }
 
-    alert("Scanner POS Siap!");
+    alert("Scanner Siap!");
 
   } catch (error) {
     console.error("Gagal inisialisasi ZXing:", error);
@@ -187,7 +185,7 @@ async function toggleFlash() {
     });
 
     const flashBtn = document.getElementById("flashBtn");
-    flashBtn.innerText = isFlashOn ? "⚡ Flash ON" : "⚡ Flash OFF";
+    flashBtn.innerText = isFlashOn ? "Flash ON" : "Flash OFF";
   } catch (err) {
     console.error(err);
   }
