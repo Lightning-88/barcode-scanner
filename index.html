@@ -3,140 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CryptoWave News</title>
+  <title>Barcode Scanner</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Library Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-  <link rel="stylesheet" href="style.css">
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      padding:20px;
+      background:#111;
+      font-family:Arial, sans-serif;
+      color:white;
+      text-align:center;
+    }
+
+    .container{
+      max-width:500px;
+      margin:auto;
+    }
+
+    h1{
+      margin-bottom:20px;
+    }
+
+    #reader{
+      width:100%;
+      overflow:hidden;
+      border-radius:16px;
+      border:2px solid #333;
+      background:#000;
+    }
+
+    .buttons{
+      margin-top:20px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+
+    button{
+      padding:12px 18px;
+      border:none;
+      border-radius:10px;
+      background:#00b894;
+      color:white;
+      font-size:16px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    button:hover{
+      opacity:0.9;
+    }
+
+    .result{
+      margin-top:20px;
+      background:#1e1e1e;
+      padding:15px;
+      border-radius:12px;
+      text-align:left;
+    }
+
+    .result h3{
+      margin-top:0;
+    }
+
+    #result{
+      color:#00ff99;
+      word-break:break-word;
+      font-size:18px;
+    }
+
+    .status{
+      margin-top:10px;
+      color:#bbb;
+      font-size:14px;
+    }
+
+  </style>
 </head>
 <body>
 
-  <div class="glow glow1"></div>
-  <div class="glow glow2"></div>
+  <div class="container">
 
-  <!-- Navbar -->
-  <nav>
-    <div class="logo">CryptoWave</div>
+    <h1>📷 Barcode Scanner</h1>
 
-    <div class="menu">
-      <a href="#">Home</a>
-      <a href="#news">Berita</a>
-      <a href="#market">Market</a>
-      <a href="#">Tentang</a>
-    </div>
-  </nav>
+    <div id="reader"></div>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-content">
-      <h1>Crypto News<br>Future Web</h1>
-
-      <p>
-        Dapatkan berita cryptocurrency terbaru,
-        market global, Bitcoin, Ethereum,
-        dan Altcoin dengan tampilan futuristik.
-      </p>
-
-      <a href="#news" class="hero-btn">Lihat Berita</a>
-    </div>
-  </section>
-
-  <!-- News -->
-  <section id="news">
-    <h2 class="section-title">🔥 Berita Trending</h2>
-
-    <div class="news-grid">
-
-      <div class="card">
-        <img src="https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=1200&auto=format&fit=crop">
-
-        <div class="card-content">
-          <div class="tag">Bitcoin</div>
-
-          <h3>Bitcoin Naik Tajam</h3>
-
-          <p>
-            Harga Bitcoin melonjak setelah
-            investor global masuk kembali
-            ke market crypto.
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="https://images.unsplash.com/photo-1639762681057-408e52192e55?q=80&w=1200&auto=format&fit=crop">
-
-        <div class="card-content">
-          <div class="tag">Ethereum</div>
-
-          <h3>Ethereum Upgrade Baru</h3>
-
-          <p>
-            Ethereum mendapatkan update besar
-            untuk meningkatkan keamanan jaringan.
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="https://images.unsplash.com/photo-1640826844124-9f6a5e31f4d7?q=80&w=1200&auto=format&fit=crop">
-
-        <div class="card-content">
-          <div class="tag">Altcoin</div>
-
-          <h3>Altcoin Bullish</h3>
-
-          <p>
-            Altcoin mulai menunjukkan kenaikan
-            besar setelah market kembali hijau.
-          </p>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Market -->
-  <section id="market">
-
-    <h2 class="section-title">📈 Live Market</h2>
-
-    <div class="market">
-
-      <div class="coin">
-        <h2>BTC</h2>
-        <p>$102,442</p>
-        <span>+4.12%</span>
-      </div>
-
-      <div class="coin">
-        <h2>ETH</h2>
-        <p>$5,210</p>
-        <span>+3.04%</span>
-      </div>
-
-      <div class="coin">
-        <h2>SOL</h2>
-        <p>$214</p>
-        <span>+8.11%</span>
-      </div>
-
-      <div class="coin">
-        <h2>XRP</h2>
-        <p>$2.84</p>
-        <span>+2.44%</span>
-      </div>
-
+    <div class="buttons">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn">Stop</button>
+      <button id="flashBtn">Flash</button>
     </div>
 
-  </section>
+    <div class="result">
+      <h3>Hasil Scan:</h3>
+      <div id="result">Belum ada hasil</div>
+    </div>
 
-  <footer>
-    © 2026 CryptoWave News
-  </footer>
+    <div class="status" id="status">
+      Status: Belum aktif
+    </div>
 
-  <script src="script.js"></script>
+  </div>
+
+  <script>
+
+    let html5QrCode;
+    let currentCameraId = null;
+    let flashOn = false;
+    let scannerRunning = false;
+
+    const resultEl = document.getElementById("result");
+    const statusEl = document.getElementById("status");
+
+    async function startScanner() {
+
+      if(scannerRunning) return;
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      try {
+
+        const devices = await Html5Qrcode.getCameras();
+
+        if (!devices || devices.length === 0) {
+          alert("Kamera tidak ditemukan");
+          return;
+        }
+
+        // Cari kamera belakang
+        const backCamera = devices.find(device =>
+          device.label.toLowerCase().includes("back")
+        );
+
+        currentCameraId = backCamera
+          ? backCamera.id
+          : devices[0].id;
+
+        await html5QrCode.start(
+          currentCameraId,
+          {
+            fps: 10,
+            qrbox: {
+              width: 250,
+              height: 250
+            }
+          },
+          (decodedText) => {
+
+            resultEl.innerHTML = decodedText;
+
+            // Vibrate jika support
+            if (navigator.vibrate) {
+              navigator.vibrate(200);
+            }
+          },
+          (errorMessage) => {
+            // ignore scan error
+          }
+        );
+
+        scannerRunning = true;
+        statusEl.innerHTML = "Status: Scanner aktif";
+
+      } catch (err) {
+        console.error(err);
+        alert("Gagal membuka kamera");
+      }
+    }
+
+    async function stopScanner() {
+
+      if (!html5QrCode || !scannerRunning) return;
+
+      try {
+
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+
+        scannerRunning = false;
+        statusEl.innerHTML = "Status: Scanner berhenti";
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function toggleFlash() {
+
+      if (!html5QrCode || !scannerRunning) {
+        alert("Scanner belum aktif");
+        return;
+      }
+
+      try {
+
+        const track = html5QrCode.getRunningTrack();
+
+        const capabilities = track.getCapabilities();
+
+        if (!capabilities.torch) {
+          alert("Flash tidak didukung di HP/browser ini");
+          return;
+        }
+
+        flashOn = !flashOn;
+
+        await track.applyConstraints({
+          advanced: [{ torch: flashOn }]
+        });
+
+        statusEl.innerHTML = flashOn
+          ? "Status: Flash ON"
+          : "Status: Flash OFF";
+
+      } catch (err) {
+        console.error(err);
+        alert("Gagal mengaktifkan flash");
+      }
+    }
+
+    document
+      .getElementById("startBtn")
+      .addEventListener("click", startScanner);
+
+    document
+      .getElementById("stopBtn")
+      .addEventListener("click", stopScanner);
+
+    document
+      .getElementById("flashBtn")
+      .addEventListener("click", toggleFlash);
+
+  </script>
 
 </body>
 </html>
