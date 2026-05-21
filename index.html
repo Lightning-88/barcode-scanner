@@ -3,139 +3,203 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Test Kamera, Flash & Scan</title>
+<title>POS Barcode Scanner</title>
 
-<!-- Ambil library QR/Barcode Scanner yang ringan dan stabil -->
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<!-- Menggunakan ZXing untuk performa scan Barcode Garis yang cepat -->
+<script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
 
 <style>
 body {
-  background: #111;
-  color: white;
+  background: #121212;
+  color: #e0e0e0;
   text-align: center;
-  font-family: Arial, sans-serif;
-  padding: 10px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 15px;
+  margin: 0;
 }
 
-.video-container {
+h1 {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+p {
+  font-size: 13px;
+  color: #888;
+  margin-top: 0;
+}
+
+/* Modifikasi Ukuran Kamera POS Mini */
+.pos-scanner-box {
   position: relative;
-  width: 100%;
-  max-width: 500px;
-  margin: 20px auto;
+  width: 280px;      /* Ukuran kotak kamera dibuat kecil & compact */
+  height: 210px;     /* Rasio 4:3 mini */
+  margin: 15px auto;
+  border: 3px solid #333;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
 video {
   width: 100%;
-  border-radius: 20px;
-  background: #222;
-  transform: scaleX(1); /* Pastikan tidak terbalik untuk kamera belakang */
+  height: 100%;
+  object-fit: cover; /* Memotong video agar pas di dalam kotak kecil */
 }
 
-/* Garis pemandu scan biar keren kayak aplikasi pro */
-.scan-region-highlight {
+/* Garis Laser Merah Khas Scanner POS Kasir */
+.laser-line {
   position: absolute;
-  top: 25%;
-  left: 25%;
-  width: 50%;
-  height: 50%;
-  border: 3px dashed #4CAF50;
-  border-radius: 10px;
-  box-sizing: border-box;
+  top: 50%;
+  left: 5%;
+  width: 90%;
+  height: 2px;
+  background-color: #ff3b30;
+  box-shadow: 0 0 8px #ff3b30;
+  animation: scanAnimation 2s infinite ease-in-out;
   pointer-events: none;
 }
 
-button {
-  margin: 10px 5px;
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
+@keyframes scanAnimation {
+  0% { top: 20%; }
+  50% { top: 80%; }
+  100% { top: 20%; }
 }
 
-.btn-start { background: #4CAF50; color: white; }
-.btn-flash { background: #FFC107; color: black; }
+/* Desain Tombol Kontrol */
+.btn-group {
+  margin-bottom: 15px;
+}
 
-#hasil {
-  margin-top: 20px;
-  padding: 15px;
-  background: #222;
-  border-radius: 10px;
-  border: 1px solid #333;
-  word-break: break-all;
+button {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  margin: 0 5px;
+  transition: background 0.2s;
+}
+
+.btn-start { background: #007aff; color: white; }
+.btn-flash { background: #ffcc00; color: black; }
+button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+#hasil-pos {
+  width: 100%;
+  max-width: 280px;
+  margin: 15px auto;
+  padding: 12px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #2d2d2d;
+  box-sizing: border-box;
+}
+
+.sku-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: #34c759;
+  letter-spacing: 1px;
+  margin-top: 5px;
 }
 </style>
 </head>
 <body>
 
-<h1>Kamera + Flash + Scan Pro</h1>
+<h1>POS Scanner Mini</h1>
+<p>Arahkan barcode garis produk ke dalam kotak</p>
 
-<button class="btn-start" onclick="startCamera()">Buka Kamera</button>
-<button class="btn-flash" id="flashBtn" onclick="toggleFlash()" disabled>⚡ Flash Off</button>
-
-<div class="video-container">
-  <video id="video" autoplay playsinline></video>
-  <div class="scan-region-highlight"></div>
+<div class="btn-group">
+  <button class="btn-start" onclick="initPOSScanner()">Buka Scanner</button>
+  <button class="btn-flash" id="flashBtn" onclick="toggleFlash()" disabled>⚡ Flash Off</button>
 </div>
 
-<div id="hasil">Mencari barcode/QR code...</div>
+<!-- Container Kamera Kecil -->
+<div class="pos-scanner-box">
+  <video id="videoInside"></video>
+  <div class="laser-line"></div>
+</div>
 
-<!-- Canvas tersembunyi untuk memproses gambar dari video secara real-time -->
-<canvas id="canvas" style="display:none;"></canvas>
+<div id="hasil-pos">
+  <div style="font-size: 12px; color: #aaa;">BARCODE TERDETEKSI:</div>
+  <div class="sku-text" id="barcodeResult">- Belum Ada Data -</div>
+</div>
 
 <script>
-let videoStream = null;
-let videoTrack = null;
+let codeReader = null;
+let activeVideoTrack = null;
 let isFlashOn = false;
 
-async function startCamera() {
+async function initPOSScanner() {
+  // Menggunakan BrowserMultiFormatReader bawaan ZXing (Bisa baca QR + Barcode Ritel sekaligus)
+  codeReader = new ZXing.BrowserMultiFormatReader();
+  
+  const videoElement = document.getElementById('videoInside');
+  const resultElement = document.getElementById('barcodeResult');
+
+  // Konfigurasi kamera belakang
+  const constraints = {
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    }
+  };
+
   try {
-    // 1. Minta akses kamera belakang secara spesifik
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
+    // Jalankan scanner langsung ke elemen video
+    await codeReader.decodeFromConstraints(constraints, videoElement, (result, err) => {
+      if (result) {
+        // Efek suara/getar jika sukses (opsional)
+        if (navigator.vibrate) navigator.vibrate(100);
+        
+        // Tampilkan hasil scan barcode di kotak POS
+        resultElement.innerText = result.text;
+        
+        console.log("Barcode ketemu:", result.text);
+        
+        /* 
+          TIPS UNTUK WEB POS:
+          Kamu bisa langsung tembak fungsi cariProduk Ke Database di sini, contoh:
+          fetch(`/api/produk/${result.text}`).then(...)
+        */
+      }
+      
+      // Abaikan error log karena library ini terus me-looping mencari gambar tiap milidetik
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error(err);
+      }
     });
 
-    videoStream = stream;
-    videoTrack = stream.getVideoTracks()[0];
-
-    const videoElement = document.getElementById("video");
-    videoElement.srcObject = stream;
-
-    alert("Kamera berhasil dibuka!");
-
-    // 2. Cek apakah HP mendukung fitur Flash/Torch
-    const capabilities = videoTrack.getCapabilities();
-    const flashBtn = document.getElementById("flashBtn");
-    
-    if (capabilities.torch) {
-      flashBtn.disabled = false; // Aktifkan tombol flash jika disupport
-    } else {
-      flashBtn.innerText = "⚡ Flash Gak Support";
+    // Ambil track video untuk mengendalikan tombol flash
+    const stream = videoElement.srcObject;
+    if (stream) {
+      activeVideoTrack = stream.getVideoTracks()[0];
+      const capabilities = activeVideoTrack.getCapabilities();
+      const flashBtn = document.getElementById("flashBtn");
+      
+      if (capabilities.torch) {
+        flashBtn.disabled = false;
+      }
     }
 
-    // 3. Jalankan fungsi scanner otomatis
-    requestAnimationFrame(tick);
+    alert("Scanner POS Siap!");
 
-  } catch (err) {
-    console.error(err);
-    alert("Gagal buka kamera:\n\n" + err.message);
+  } catch (error) {
+    console.error("Gagal inisialisasi ZXing:", error);
+    alert("Gagal memuat scanner: " + error.message);
   }
 }
 
-// Fungsi untuk Menyalakan / Mematikan Flash
 async function toggleFlash() {
-  if (!videoTrack) return;
+  if (!activeVideoTrack) return;
 
   try {
     isFlashOn = !isFlashOn;
-    // Terapkan konfigurasi torch (senter) ke track kamera yang aktif
-    await videoTrack.applyConstraints({
+    await activeVideoTrack.applyConstraints({
       advanced: [{ torch: isFlashOn }]
     });
 
@@ -143,45 +207,7 @@ async function toggleFlash() {
     flashBtn.innerText = isFlashOn ? "⚡ Flash ON" : "⚡ Flash OFF";
   } catch (err) {
     console.error(err);
-    alert("Gagal mengubah status flash: " + err.message);
   }
-}
-
-// Fungsi "Looping" untuk mengecek gambar di video secara konstan
-function tick() {
-  const video = document.getElementById("video");
-  const canvasElement = document.getElementById("canvas");
-  const canvas = canvasElement.getContext("2d");
-  const hasilElement = document.getElementById("hasil");
-
-  if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    canvasElement.height = video.videoHeight;
-    canvasElement.width = video.videoWidth;
-    
-    // Gambar video ke canvas internal
-    canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-    
-    // Ambil data pixel gambar
-    const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-    
-    // Proses scanning menggunakan library jsQR
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    });
-
-    // Jika barcode/QR code terdeteksi
-    if (code) {
-      hasilElement.innerHTML = `
-        <strong style="color:#4CAF50;">Hasil Scan:</strong><br>
-        <a href="${code.data}" target="_blank" style="color:#FFF;">${code.data}</a>
-      `;
-      // Bikin HP getar dikit kalau ketemu kode (fitur opsional)
-      if (navigator.vibrate) navigator.vibrate(200);
-    }
-  }
-  
-  // Jalankan terus menerus selama kamera terbuka
-  requestAnimationFrame(tick);
 }
 </script>
 
